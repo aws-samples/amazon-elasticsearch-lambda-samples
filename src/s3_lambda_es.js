@@ -43,27 +43,56 @@ var numDocsAdded = 0;   // Number of log lines added to ES so far
 var creds = new AWS.EnvironmentCredentials('AWS');
 
 
-/* == Streams ==
- * To avoid loading an entire (typically large) log file into memory,
- * this is implemented as a pipeline of filters, streaming log data
- * from S3 to ES.
- * Flow: S3 file stream -> Log Line stream -> Log Record stream -> ES
- */
-var lineStream = new LineStream();
-// A stream of log records, from parsing each log line
-var recordStream = new stream.Transform({objectMode: true})
-recordStream._transform = function(line, encoding, done) {
-    var logRecord = parse(line.toString());
-    var serializedRecord = JSON.stringify(logRecord);
-    this.push(serializedRecord);
-    totLogLines ++;
-    done();
-}
+
 
 
 /* Lambda "main": Execution starts here */
 exports.handler = function(event, context) {
     console.log('Received event: ', JSON.stringify(event, null, 2));
+    
+    /* == Streams ==
+    * To avoid loading an entire (typically large) log file into memory,
+    * this is implemented as a pipeline of filters, streaming log data
+    * from S3 to ES.
+    * Flow: S3 file stream -> Log Line stream -> Log Record stream -> ES
+    */
+    var lineStream = new LineStream();
+    // A stream of log records, from parsing each log line
+    var recordStream = new stream.Transform({objectMode: true})
+    recordStream._transform = function(line, encoding, done) {
+        var logRecord = parse(line.toString());
+        var serializedRecord = JSON.stringify(logRecord);
+        this.push(serializedRecord);
+        totLogLines ++;
+        done();
+    }
+    
+    /*
+    * Get the log file from the given S3 bucket and key.  Parse it and add
+    * each log record to the ES domain.
+    */
+    function s3LogsToES(bucket, key, context) {
+        // Note: The Lambda function should be configured to filter for .log files
+        // (as part of the Event Source "suffix" setting).
+    
+        var s3Stream = s3.getObject({Bucket: bucket, Key: key}).createReadStream();
+    
+        // Flow: S3 file stream -> Log Line stream -> Log Record stream -> ES
+        s3Stream
+        .pipe(lineStream)
+        .pipe(recordStream)
+        .on('data', function(parsedEntry) {
+            postDocumentToES(parsedEntry, context);
+        });
+    
+        s3Stream.on('error', function() {
+            console.log(
+                'Error getting object "' + key + '" from bucket "' + bucket + '".  ' +
+                'Make sure they exist and your bucket is in the same region as this function.');
+            context.fail();
+        });
+    }
+
     event.Records.forEach(function(record) {
         var bucket = record.s3.bucket.name;
         var objKey = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
@@ -71,31 +100,6 @@ exports.handler = function(event, context) {
     });
 }
 
-/*
- * Get the log file from the given S3 bucket and key.  Parse it and add
- * each log record to the ES domain.
- */
-function s3LogsToES(bucket, key, context) {
-    // Note: The Lambda function should be configured to filter for .log files
-    // (as part of the Event Source "suffix" setting).
-
-    var s3Stream = s3.getObject({Bucket: bucket, Key: key}).createReadStream();
-
-    // Flow: S3 file stream -> Log Line stream -> Log Record stream -> ES
-    s3Stream
-      .pipe(lineStream)
-      .pipe(recordStream)
-      .on('data', function(parsedEntry) {
-          postDocumentToES(parsedEntry, context);
-      });
-
-    s3Stream.on('error', function() {
-        console.log(
-            'Error getting object "' + key + '" from bucket "' + bucket + '".  ' +
-            'Make sure they exist and your bucket is in the same region as this function.');
-        context.fail();
-    });
-}
 
 /*
  * Add the given document to the ES domain.
