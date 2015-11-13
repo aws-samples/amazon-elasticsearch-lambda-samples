@@ -54,10 +54,10 @@ function s3LogsToES(bucket, key, context, lineStream, recordStream) {
 
     // Flow: S3 file stream -> Log Line stream -> Log Record stream -> ES
     s3Stream
-    .pipe(lineStream)
-    .pipe(recordStream)
-    .on('data', function(parsedEntry) {
-        postDocumentToES(parsedEntry, context);
+      .pipe(lineStream)
+      .pipe(recordStream)
+      .on('data', function(parsedEntry) {
+          postDocumentToES(parsedEntry, context);
     });
 
     s3Stream.on('error', function() {
