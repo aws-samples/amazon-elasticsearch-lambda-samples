@@ -58,14 +58,14 @@ function s3LogsToES(bucket, key, context, lineStream, recordStream) {
       .pipe(recordStream)
       .on('data', function(parsedEntry) {
           postDocumentToES(parsedEntry, context);
-    });
+      });
 
     s3Stream.on('error', function() {
         console.log(
             'Error getting object "' + key + '" from bucket "' + bucket + '".  ' +
             'Make sure they exist and your bucket is in the same region as this function.');
         context.fail();
-      });
+    });
 }
 
 /*
