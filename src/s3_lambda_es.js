@@ -43,9 +43,9 @@ var numDocsAdded = 0;   // Number of log lines added to ES so far
 var creds = new AWS.EnvironmentCredentials('AWS');
 
 /*
-* Get the log file from the given S3 bucket and key.  Parse it and add
-* each log record to the ES domain.
-*/
+ * Get the log file from the given S3 bucket and key.  Parse it and add
+ * each log record to the ES domain.
+ */
 function s3LogsToES(bucket, key, context, lineStream, recordStream) {
     // Note: The Lambda function should be configured to filter for .log files
     // (as part of the Event Source "suffix" setting).
