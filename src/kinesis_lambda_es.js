@@ -57,6 +57,7 @@ function postToES(doc, context) {
     req.region = esDomain.region;
     req.headers['presigned-expires'] = false;
     req.headers['Host'] = endpoint.host;
+    req.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     req.body = doc;
 
     var signer = new AWS.Signers.V4(req , 'es');  // es: service code
