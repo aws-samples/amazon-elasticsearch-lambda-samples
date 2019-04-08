@@ -1,8 +1,5 @@
 # Streaming Data to Amazon Elasticsearch Service
 ## Using AWS Lambda: Sample Node.js Code
-### Package amazon-elasticsearch-lambda-samples
-
-Copyright 2015- Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 ### Introduction
 It is often useful to stream data, as it gets generated, for indexing in an
@@ -166,3 +163,9 @@ Please keep in mind the following notes and configuration overrides:
   If not, the AWS CLI could be used to push a JSON document to Lambda.
 
       aws kinesis put-record --stream-name <lambda name> --data "<JSON document>" --region <region> --partition-key shardId-000000000000
+
+## Copyright
+
+Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+SPDX-License-Identifier: MIT-0
