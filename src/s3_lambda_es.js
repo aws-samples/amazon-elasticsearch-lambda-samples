@@ -22,8 +22,6 @@ var esDomain = {
 };
 var endpoint =  new AWS.Endpoint(esDomain.endpoint);
 var s3 = new AWS.S3();
-var totLogLines = 0;    // Total number of log lines in the file
-var numDocsAdded = 0;   // Number of log lines added to ES so far
 
 /*
  * The AWS credentials are picked up from the environment.
@@ -104,7 +102,12 @@ function postDocumentToES(doc, context) {
 /* Lambda "main": Execution starts here */
 exports.handler = function(event, context) {
     console.log('Received event: ', JSON.stringify(event, null, 2));
-    
+
+    // Create counters inside handler - Lambda may reuse container
+    // so these needs to be reset on each execution.
+    var totLogLines = 0;    // Total number of log lines in the file
+    var numDocsAdded = 0;   // Number of log lines added to ES so far
+
     /* == Streams ==
     * To avoid loading an entire (typically large) log file into memory,
     * this is implemented as a pipeline of filters, streaming log data
